@@ -1,0 +1,47 @@
+# =========================
+# Docker Compose - Production Configuration
+# =========================
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Contains production-specific configuration
+
+services:
+  # ----- Backend Production -----
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    environment:
+      - DEBUG=0
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ----- Frontend Production -----
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - app-network
+
+  # ----- Database Production -----
+  db:
+    restart: unless-stopped
+    # In production, consider:
+    # - Using a managed CockroachDB cluster
+    # - Enabling SSL/TLS
+    # - Setting up proper backups
